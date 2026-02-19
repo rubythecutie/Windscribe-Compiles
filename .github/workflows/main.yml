@@ -33,7 +33,7 @@ jobs:
             libxcb-render-util0-dev libxcb-util-dev \
             libxcb-xinerama0-dev libxcb-xkb-dev \
             libxkbcommon-dev libxkbcommon-x11-dev \
-            libwayland-dev ninja
+            libwayland-dev ninja-build
 
       # -----------------------------
       # CMake 3.x (NOT 4.x)
