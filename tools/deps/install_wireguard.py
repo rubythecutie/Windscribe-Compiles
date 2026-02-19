@@ -150,9 +150,6 @@ if __name__ == "__main__":
         msg.Print("Installing {}...".format(DEP_TITLE))
         InstallDependency()
         exitcode = 0
-    except iutl.InstallError as e:
-        msg.Error(e)
-        exitcode = e.exitcode
     except IOError as e:
         msg.Error(e)
         exitcode = 1
