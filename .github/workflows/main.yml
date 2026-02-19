@@ -1,0 +1,107 @@
+name: Build Windscribe (Linux)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------
+      # System dependencies
+      # -----------------------------
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git curl patchelf libpam0g-dev \
+            software-properties-common libgl1-mesa-dev fakeroot \
+            python3-pip zip unzip libnl-genl-3-dev pkg-config \
+            libcap-ng-dev wget autoconf libtool \
+            libfontconfig1-dev libfreetype6-dev \
+            libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+            libxi-dev libxrender-dev libxcb1-dev \
+            libxcb-cursor-dev libxcb-glx0-dev \
+            libxcb-keysyms1-dev libxcb-image0-dev \
+            libxcb-shm0-dev libxcb-icccm4-dev \
+            libxcb-sync-dev libxcb-xfixes0-dev \
+            libxcb-shape0-dev libxcb-randr0-dev \
+            libxcb-render-util0-dev libxcb-util-dev \
+            libxcb-xinerama0-dev libxcb-xkb-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev
+
+      # -----------------------------
+      # CMake 3.x (NOT 4.x)
+      # -----------------------------
+      - name: Install CMake 3.x
+        run: |
+          sudo snap install cmake --classic
+          cmake --version
+
+      # -----------------------------
+      # Go (>=1.23)
+      # -----------------------------
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Verify Go
+        run: go version
+
+      # -----------------------------
+      # Python deps
+      # -----------------------------
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tools/requirements.txt
+
+      # -----------------------------
+      # Install vcpkg
+      # -----------------------------
+      - name: Install vcpkg
+        run: |
+          chmod +x tools/vcpkg/install_ci/vcpkg_install.sh
+          tools/vcpkg/install_ci/vcpkg_install.sh $(pwd)/vcpkg
+
+      # -----------------------------
+      # Build dependencies
+      # -----------------------------
+      - name: Build WireGuard
+        working-directory: tools/deps
+        run: |
+          export VCPKG_ROOT=$(pwd)/../../vcpkg
+          chmod +x install_wireguard
+          ./install_wireguard
+
+      - name: Build WSTunnel
+        working-directory: tools/deps
+        run: |
+          export VCPKG_ROOT=$(pwd)/../../vcpkg
+          chmod +x install_wstunnel
+          ./install_wstunnel
+
+      # -----------------------------
+      # Build Windscribe
+      # -----------------------------
+      - name: Build Windscribe app
+        working-directory: tools
+        run: |
+          export VCPKG_ROOT=$(pwd)/../vcpkg
+          chmod +x build_all
+          ./build_all
+
+      # -----------------------------
+      # Upload artifacts
+      # -----------------------------
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windscribe-build
+          path: tools/build-exe/**
